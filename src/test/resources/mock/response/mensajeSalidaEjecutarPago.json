@@ -1,0 +1,44 @@
+{
+  "codigo": "0",
+  "estado": "OK",
+  "mensajeUsuario": "PAGO REALIZADO",
+  "mensajeSalidaEjecutarPago": {
+    "banderaOffline": true,
+    "codigoError": "0",
+    "switchAuditNumber": "66188472409944848365",
+    "datosAdicionales": {
+      "datoAdicional": [
+        {
+          "codigo": "billerAuthorizationCode",
+          "etiqueta": null,
+          "editable": null,
+          "formato": null,
+          "longitud": null,
+          "mascara": null,
+          "regexp": null,
+          "tipo": null,
+          "valor": "20250312144118360",
+          "visible": null
+        },
+        {
+          "codigo": "e_cod_respuesta",
+          "etiqueta": null,
+          "editable": null,
+          "formato": null,
+          "longitud": null,
+          "mascara": null,
+          "regexp": null,
+          "tipo": null,
+          "valor": "20250312144118360",
+          "visible": null
+        }
+      ]
+    },
+    "fechaDebito": "2025-03-12T15:44:45",
+    "fechaPago": "2025-03-12T15:44:45",
+    "mensajeUsuario": "TRANSACCION PROCESADA CON Ã‰XITO",
+    "mensajeSistema": null,
+    "montoTotal": null,
+    "referencia": "20250312144118360"
+  }
+}

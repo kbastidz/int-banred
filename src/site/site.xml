@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/DECORATION/1.8.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.8.0 https://maven.apache.org/xsd/decoration-1.8.0.xsd"
+         name="Maven">
+    <bannerLeft>
+        <name>Maven</name>
+        <src>
+            https://global-uploads.webflow.com/5e2f2362e479664d4e15718a/5eda5b2088d55a0cfc0ae14a_banco-bolivariano-logo.svg
+        </src>
+        <href>https://maven.apache.org/</href>
+    </bannerLeft>
+    <body>
+        <links>
+            <item name="Apache" href="http://www.apache.org/"/>
+            <item name="Maven 1.x" href="https://maven.apache.org/maven-1.x/"/>
+            <item name="Maven 2" href="https://maven.apache.org/"/>
+        </links>
+        <menu name="Maven 2.0">
+            <item name="Introducción" href="index.html"/>
+        </menu>
+        <menu ref="reports"/>
+    </body>
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.11.1</version>
+    </skin>
+</project>

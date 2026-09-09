@@ -1,0 +1,151 @@
+application:
+  title: rec-mso-integrador-banred
+  version: 1.1.0
+
+microservices:
+  context-name: api
+  version: v1
+
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: identity.jks
+    key-store-password: desarrollo
+    enabled-protocols: TLSv1.2,TLSv1.3
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: recbanred
+    main:
+      web-application-type: reactive
+  jmx:
+    enabled: false
+
+banred:
+  connectionRequestTimeout: 30000
+  connectionTimeout: 30000
+  readTimeout: 30000
+  nombreCanalBancaMovil: WAP
+  codigoCanalBancaMovil: 7
+  cardSequenceBancaMovil: 117
+  nombreCanalBancaVirtual: IBK
+  codigoCanalBancaVirtual: 4
+  cardSequenceBancaVirtual: 129
+  nombreCanalSAT: SAT
+  codigoCanalSAT: 4
+  cardSequenceSAT: 129
+  nombreCanalVentanilla: VEN
+  codigoCanalVentanilla: 9
+  cardSequenceVentanilla: 149
+  nombreCanalCNB: CNB
+  codigoCanalCNB: 10
+  cardSequenceCNB: 120
+  nombreCanalKiosko: KIO
+  codigoCanalKiosko: 11
+  txCodeConsulta: 310000
+  txCodePagoDebito: 44109M
+  txCodePagoEfectivo: 45109M
+  txCodeReverso: 44109M
+  currencyCode: 840
+  medio: 1
+  primaryAcctNumber: "0000000000000233"
+  acquirerInstitutionID: "0233"
+  branchId: 20249999
+  genericErrorResponse: "ESTA RECAUDACION NO SE ENCUENTRA DISPONIBLE POR EL MOMENTO"
+  systemErrorBanred: "ERROR DEL SISTEMA"
+  notPermitedHoursError: "TRANSACCION EN HORARIO NO PERMITIDO"
+  receivingInstitutionIdCode: "10000002233"
+  accpIdTellerCode: "6011"
+  cardAcceptorNameLoc: "ACQUIRER NAME            QUITO        EC"
+  accountId1: "0000000000"
+  routingData: "! Q300011 SRC_RTE_UPP"
+  inputDataInqPayment: "! Q000010"
+  inputDataReversal: "! Q000031"
+  posEntryMode: "101"
+
+company:
+  transformation:
+    validEnterpriseV1: "2261"
+    versions:
+      v1:
+        formatDate: MMdd
+        formatTime: HHmmss
+        url: https://soavirt-route-bb-dev-parasoft.apps.ocpbbdevqantx.desabbol.fin.ec/Proxy_Banred_V1_UP/Service1.asmx
+      v2:
+        formatDate: ddMMyyyy
+        formatTime: HHmmss
+        url: https://soavirt-route-bb-dev-parasoft.apps.ocpbbdevqantx.desabbol.fin.ec/Proxy_Banred_V2_TANGO/Service1.asmx
+
+mig_company:
+  company_migrates: "2259,8453" #(2259-361)
+
+auto-reversal-config:
+  companies:
+    - code: "361"
+      reversal-types: "A,M"
+      info-reversal-fields: "codAgencia,codLocalidad,billerAuthorizationCode,metodo_pago"
+    - code: "8453"
+      reversal-types: "A,M"
+      info-reversal-fields: "codAgencia,codLocalidad,billerAuthorizationCode,metodo_pago"
+
+data-masking:
+  enabled: false
+  sensitive-field-codes:
+    - documentID
+    - fullName
+    - numDocIdentif
+    - numDocIdentif2
+    - nombreCliente
+    - nombreCliente2
+    - legalDocumentIDOwner
+    - legalNameOwner
+    - e_identificacion_pagador
+    - e_nombre_pagador
+    - telephone
+    - email
+    - track2
+  max-field-length: 150
+  max-key-field-length: 150
+
+logging:
+  level:
+    root: ERROR
+    com.bolivariano.microservice.recbanred: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %yellow([%thread]) %highlight(%-5level) %logger{15} %M: %msg%n"
+
+management:
+  server:
+    port: 8778
+  endpoints:
+    web:
+      base-path: /signals
+      path-mapping:
+        health: healthcheck
+  endpoint:
+    health:
+      enabled: true
+      show-details: when-authorized
+
+compressor:
+  baseChar: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  number: 62
+  divisor: 128
+  padLength: 12
+  filler: '0'
+  separator: "-"
+  pid:
+    A: PID
+
+security:
+  ssl:
+    keystore:
+      trust:
+        path: truststore.jks
+        password:
+
+encryption:
+  usuario: esbsswsd1

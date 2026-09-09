@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document xmlns="http://maven.apache.org/DOCUMENT/1.0.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/DOCUMENT/1.0.1 https://maven.apache.org/xsd/document-1.0.1.xsd"
+          outputName="${project.name}">
+    <meta>
+        <title>Reporte de pruebas unitarias de ${project.name}</title>
+        <author>John Mazzini</author>
+    </meta>
+    <toc name="Tabla de contenido">
+        <item name="Introduccion" ref="/apt/index.apt"/>
+    </toc>
+    <cover>
+        <coverTitle>${project.name}</coverTitle>
+        <coverType>Pruebas Unitarias</coverType>
+        <projectName>${project.name}</projectName>
+        <coverSubTitle>v. ${project.version}</coverSubTitle>
+        <projectLogo>https://www.bancasinhorarios.com.ec/BOLI-ebanking/images/header/logoLoginBolivariano.png
+        </projectLogo>
+        <companyLogo>https://www.bancasinhorarios.com.ec/BOLI-ebanking/images/login/home/logo-Bolivariano.png
+        </companyLogo>
+        <companyName>Banco Bolivariano C.A.</companyName>
+    </cover>
+</document>
