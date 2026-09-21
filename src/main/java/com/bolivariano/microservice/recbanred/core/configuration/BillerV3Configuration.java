@@ -55,7 +55,6 @@ public class BillerV3Configuration {
     private String companiesCnel;
     private String companiesMeer;
     private String companiesMungye;
-    private String companiesSadall;
 
     private InstitucionConfig cnel;
     private InstitucionConfig meer;
@@ -71,10 +70,6 @@ public class BillerV3Configuration {
 
     public List<String> getCompaniesMungye() {
         return toList(companiesMungye);
-    }
-
-    public List<String> getCompaniesSadall() {
-        return toList(companiesSadall);
     }
 
     private List<String> toList(String csv) {

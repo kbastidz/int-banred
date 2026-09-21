@@ -32,8 +32,6 @@ public class BillerResolver {
             return TipoBiller.CNEL;
         if (billerV3Configuration.getCompaniesMeer().contains(companyCode))
             return TipoBiller.MEER;
-        if (billerV3Configuration.getCompaniesSadall().contains(companyCode))
-            return TipoBiller.MUNGYE;
         if (billerV3Configuration.getCompaniesMungye().contains(companyCode))
             return TipoBiller.MUNGYE;
 
@@ -49,21 +47,9 @@ public class BillerResolver {
         }
     }
 
-    /**
-     * Resuelve el sub-servicio MUNGYE considerando el companyCode.
-     * Las empresas SADALL usan BillServiceCode=3 pero tienen su propia trama Q1,
-     * por lo que se identifican por companyCode antes de delegar al billServiceCode.
-     */
-    public SubServicioMungye resolverSubServicioMungyeConEmpresa(String companyCode, int billServiceCode) throws CustomException {
-        if (billerV3Configuration.getCompaniesSadall().contains(companyCode))
-            return SubServicioMungye.SADALL;
-        return resolverSubServicioMungye(billServiceCode);
-    }
-
     public boolean esCompanyV3(String companyCode) {
         return billerV3Configuration.getCompaniesCnel().contains(companyCode)
                 || billerV3Configuration.getCompaniesMeer().contains(companyCode)
-                || billerV3Configuration.getCompaniesMungye().contains(companyCode)
-                || billerV3Configuration.getCompaniesSadall().contains(companyCode);
+                || billerV3Configuration.getCompaniesMungye().contains(companyCode);
     }
 }

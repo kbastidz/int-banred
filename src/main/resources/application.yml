@@ -78,29 +78,9 @@ company:
         formatDate: ddMMyyyy
         formatTime: HHmmss
         url: https://soavirt-route-bb-dev-parasoft.apps.ocpbbdevqantx.desabbol.fin.ec/Proxy_Banred_V2_TANGO/Service1.asmx
-      v3:
-        formatDate: ddMMyyyy
-        formatTime: HHmmss
-        url: https://soavirt-route-bb-dev-parasoft.apps.ocpbbdevqantx.desabbol.fin.ec/Proxy_Banred_V3_TANGO/Service1.asmx
 
 mig_company:
   company_migrates: "2259,8453" #(2259-361)
-
-biller:
-  v3:
-    companies-cnel: "2254"
-    companies-meer: "2261"
-    companies-mungye: ""
-    companies-sadall: "2245"
-    cnel:
-      cod-institucion-financiera: "03033"
-      cod-operador: "BBL001"
-    meer:
-      cod-institucion-financiera: "00000"
-      cod-operador: "0000000000"
-    mungye:
-      cod-institucion-financiera: "00597777"
-      cod-operador: "000000998"
 
 auto-reversal-config:
   companies:

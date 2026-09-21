@@ -240,7 +240,6 @@ public class TokenSpecRegistry {
         registrarMungyePredios();
         registrarMungyeMilote();
         registrarMungyeMercados();
-        registrarMungyeSadall();
     }
 
     private void registrarMungyeCep() {
@@ -398,57 +397,6 @@ public class TokenSpecRegistry {
                 numerico("CUOTA_MAXIMA", 2)
         ));
         put(TipoBiller.MUNGYE, SubServicioMungye.MILOTE, TipoOperacionToken.REVERSAL, reversalQ0, reversalQ1);
-    }
-
-    // ==================================================================
-    // MUNGYE - SADALL (Saneamiento Agua - empresa 2245, BillServiceCode=3)
-    // Trama Q1 inferida de respuesta real 20260919 (longitud=224).
-    // Estructura confirmada:
-    //   numerico(5)  → REFERENCIA_DEUDA
-    //   monto(12)    → DEUDA_TOTAL
-    //   variable     → NOMBRE_CLIENTE
-    //   alfa(8)      → FECHA_EMISION     (yyyyMMdd)
-    //   alfa(8)      → FECHA_VENCIMIENTO (yyyyMMdd, ultimos 4 en 0000 = sin venc. exacto)
-    //   monto(6)     → MONTO_PARCIAL     (campo adicional inferido)
-    //   alfa(154)    → DATOS_ADICIONALES (resto de la trama, pendiente de documentacion oficial)
-    // NOTA: los campos a partir de MONTO_PARCIAL deben confirmarse con el biller.
-    // ==================================================================
-
-    private void registrarMungyeSadall() {
-        EspecificacionToken inquiryQ0 = new EspecificacionToken("MUNGYE-SADALL-INQUIRY-Q0", List.of(
-                alfa("PROCESS_TYPE", 1, "A"),
-                numerico("ABA_INSTITUCION", 8),
-                alfa("COD_OPERADOR", 9)
-        ));
-        EspecificacionToken inquiryQ1 = new EspecificacionToken("MUNGYE-SADALL-INQUIRY-Q1", List.of(
-                numerico("REFERENCIA_DEUDA", 5),
-                monto("DEUDA_TOTAL", 12),
-                variable("NOMBRE_CLIENTE"),
-                alfa("FECHA_EMISION", 8),
-                alfa("FECHA_VENCIMIENTO", 8),
-                monto("MONTO_PARCIAL", 6),
-                // TODO: confirmar estructura de los 154 caracteres restantes con el biller SADALL
-                alfa("DATOS_ADICIONALES", 154)
-        ));
-        put(TipoBiller.MUNGYE, SubServicioMungye.SADALL, TipoOperacionToken.INQUIRY, inquiryQ0, inquiryQ1);
-
-        // Q0/Q1 de PAGO y REVERSO: pendientes de documentacion oficial del biller.
-        // Se registran con specs vacias para evitar excepcion en TokenSpecRegistry.getQ1().
-        EspecificacionToken paymentQ0 = new EspecificacionToken("MUNGYE-SADALL-PAYMENT-Q0", List.of(
-                alfa("PROCESS_TYPE", 1, "P"),
-                numerico("ABA_INSTITUCION", 8),
-                alfa("COD_OPERADOR", 9)
-        ));
-        EspecificacionToken paymentQ1 = new EspecificacionToken("MUNGYE-SADALL-PAYMENT-Q1", List.of());
-        put(TipoBiller.MUNGYE, SubServicioMungye.SADALL, TipoOperacionToken.PAYMENT, paymentQ0, paymentQ1);
-
-        EspecificacionToken reversalQ0 = new EspecificacionToken("MUNGYE-SADALL-REVERSAL-Q0", List.of(
-                alfa("PROCESS_TYPE", 1, "R"),
-                numerico("ABA_INSTITUCION", 8),
-                alfa("COD_OPERADOR", 9)
-        ));
-        EspecificacionToken reversalQ1 = new EspecificacionToken("MUNGYE-SADALL-REVERSAL-Q1", List.of());
-        put(TipoBiller.MUNGYE, SubServicioMungye.SADALL, TipoOperacionToken.REVERSAL, reversalQ0, reversalQ1);
     }
 
     private void registrarMungyeMercados() {

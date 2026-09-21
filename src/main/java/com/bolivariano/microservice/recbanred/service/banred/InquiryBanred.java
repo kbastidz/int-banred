@@ -121,13 +121,7 @@ public class InquiryBanred {
         }
         if (inquiryRs instanceof BillInquiryRsV3 rsV3) {
             BillInquiryResponseV3 response = rsV3.getBillInquiryResponse();
-            String companyCode = AdditionalDataUtils.getValueAdditionalData(inquiryRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
-            int billServiceCode = CommonUtils.convertToInteger(inquiryRq.getServicio().getCodigoConvenio());
-            TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
-            SubServicioMungye sub = biller == TipoBiller.MUNGYE
-                    ? this.billerResolver.resolverSubServicioMungyeConEmpresa(companyCode, billServiceCode)
-                    : null;
-            DatosAdicionales datosAdicionales = this.parseResponseDataV3Safe(response.getResponseData(), inquiryRq, TipoOperacionToken.INQUIRY, biller, sub);
+            DatosAdicionales datosAdicionales = this.parseResponseDataV3Safe(response.getResponseData(), inquiryRq, TipoOperacionToken.INQUIRY);
 
             return MensajeSalidaConsultarDeuda.builder()
                     .codigoError(this.businessUtils.getErrorCode(response.getResultCode()))
@@ -135,7 +129,7 @@ public class InquiryBanred {
                     .fechaVencimiento(this.businessUtils.transformCutoverDate(response.getBillerCutoverDate()))
                     .formaPago(null)
                     .formaPagoRecibos(null)
-                    .identificadorDeuda(TokenDataV3Utils.getValor(datosAdicionales, "REFERENCIA_DEUDA"))
+                    .identificadorDeuda(TokenDataV3Utils.getValor(datosAdicionales, "REFERENCIA_CLIENTE"))
                     .limiteMontoMaximo(StringUtils.isNotEmpty(response.getAmount())
                             ? (BigDecimal) this.businessUtils.formatPaidAmountFromBanred(response.getAmount()) : BigDecimal.ZERO)
                     .limiteMontoMinimo(BigDecimal.ZERO)
@@ -182,12 +176,16 @@ public class InquiryBanred {
     }
 
     /**
-     * Decodifica el ResponseData V3 (token Q1) usando biller y sub-servicio ya resueltos.
-     * Nunca lanza excepcion: en caso de error, se loguea y se retorna null.
+     * Resuelve el biller/sub-servicio a partir del request original y decodifica
+     * el ResponseData V3 (token Q1). Nunca lanza excepcion: en caso de error,
+     * se loguea y se retorna null (igual criterio que getReceiptsV1/getReceiptsV2).
      */
-    private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaConsultarDeuda inquiryRq,
-                                                      TipoOperacionToken operacion, TipoBiller biller, SubServicioMungye sub) {
+    private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaConsultarDeuda inquiryRq, TipoOperacionToken operacion) {
         try {
+            String companyCode = AdditionalDataUtils.getValueAdditionalData(inquiryRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
+            TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
+            int billServiceCode = CommonUtils.convertToInteger(inquiryRq.getServicio().getCodigoConvenio());
+            SubServicioMungye sub = biller == TipoBiller.MUNGYE ? this.billerResolver.resolverSubServicioMungye(billServiceCode) : null;
             return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, operacion);
         } catch (Exception ex) {
             log.error("No se pudo decodificar ResponseData V3: {}", ex.getMessage());
