@@ -19,4 +19,6 @@ public class Defaults {
     public static final String FULLDATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
     public static final String SUCCESS_INTEGRATOR = "0";
     public static final String REFERENCIA = "REFERENCIA";
+    public static final String CUSTOMOFICCE = "CUSTOMOFICCE";
+    public static final String REFERENCE = "REFERENCE";
 }

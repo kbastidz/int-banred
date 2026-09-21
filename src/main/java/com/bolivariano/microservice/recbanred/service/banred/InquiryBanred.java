@@ -15,6 +15,13 @@ import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntrada
 import com.bolivariano.microservice.recbanred.core.payloads.output.MensajeSalidaConsultarDeuda;
 import com.bolivariano.microservice.recbanred.core.payloads.output.MensajeSalidaProcesar;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillInquiryRsV2;
+import com.bolivariano.microservice.recbanred.core.enums.banred.SubServicioMungye;
+import com.bolivariano.microservice.recbanred.core.enums.banred.TipoBiller;
+import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionToken;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillInquiryResponseV3;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillInquiryRsV3;
+import com.bolivariano.microservice.recbanred.service.banred.v3.TokenDataV3Utils;
+import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.bolivariano.microservice.recbanred.service.BanredService;
 import com.bolivariano.microservice.recbanred.util.*;
 import com.google.gson.Gson;
@@ -37,6 +44,8 @@ public class InquiryBanred {
     private final TokenDataUtils tokenDataUtils;
     private final AdditionalDataUtils addDataUtils;
     private final DataMaskingUtils dataMaskingUtils;
+    private final TokenDataV3Utils tokenDataV3Utils;
+    private final BillerResolver billerResolver;
     private static final Gson gson = new Gson().newBuilder().disableHtmlEscaping().serializeNulls().create();
     private static final Logger log = LoggerFactory.getLogger(InquiryBanred.class);
 
@@ -44,12 +53,16 @@ public class InquiryBanred {
                          BusinessUtils businessUtils,
                          TokenDataUtils tokenDataUtils,
                          AdditionalDataUtils addDataUtils,
-                         DataMaskingUtils dataMaskingUtils) {
+                         DataMaskingUtils dataMaskingUtils,
+                         TokenDataV3Utils tokenDataV3Utils,
+                         BillerResolver billerResolver) {
         this.banredService = banredService;
         this.businessUtils = businessUtils;
         this.tokenDataUtils = tokenDataUtils;
         this.addDataUtils = addDataUtils;
         this.dataMaskingUtils = dataMaskingUtils;
+        this.tokenDataV3Utils = tokenDataV3Utils;
+        this.billerResolver = billerResolver;
     }
 
     /**
@@ -106,6 +119,39 @@ public class InquiryBanred {
                     .build();
 
         }
+        if (inquiryRs instanceof BillInquiryRsV3 rsV3) {
+            BillInquiryResponseV3 response = rsV3.getBillInquiryResponse();
+            String companyCode = AdditionalDataUtils.getValueAdditionalData(inquiryRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
+            int billServiceCode = CommonUtils.convertToInteger(inquiryRq.getServicio().getCodigoConvenio());
+            TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
+            SubServicioMungye sub = biller == TipoBiller.MUNGYE
+                    ? this.billerResolver.resolverSubServicioMungyeConEmpresa(companyCode, billServiceCode)
+                    : null;
+            DatosAdicionales datosAdicionales = this.parseResponseDataV3Safe(response.getResponseData(), inquiryRq, TipoOperacionToken.INQUIRY, biller, sub);
+
+            return MensajeSalidaConsultarDeuda.builder()
+                    .codigoError(this.businessUtils.getErrorCode(response.getResultCode()))
+                    .datosAdicionales(datosAdicionales)
+                    .fechaVencimiento(this.businessUtils.transformCutoverDate(response.getBillerCutoverDate()))
+                    .formaPago(null)
+                    .formaPagoRecibos(null)
+                    .identificadorDeuda(TokenDataV3Utils.getValor(datosAdicionales, "REFERENCIA_DEUDA"))
+                    .limiteMontoMaximo(StringUtils.isNotEmpty(response.getAmount())
+                            ? (BigDecimal) this.businessUtils.formatPaidAmountFromBanred(response.getAmount()) : BigDecimal.ZERO)
+                    .limiteMontoMinimo(BigDecimal.ZERO)
+                    .mensajeUsuario(response.getErrorMessage())
+                    .mensajeSistema(null)
+                    .montoMinimo(BigDecimal.ZERO)
+                    .montoTotal(StringUtils.isNotEmpty(response.getAmount())
+                            ? (BigDecimal) this.businessUtils.formatPaidAmountFromBanred(response.getAmount()) : BigDecimal.ZERO)
+                    .nombreCliente(TokenDataV3Utils.getValor(datosAdicionales, "NOMBRE_CLIENTE"))
+                    // NOTA: el desglose por Recibo (uno por documento/año/cuota) depende de cada
+                    // biller (ver TokenDataV3Utils/EspecificacionToken); se deja generico en
+                    // "datosAdicionales" y puede mapearse a Recibos puntualmente si se requiere.
+                    .recibos(null)
+                    .textoAyuda(null)
+                    .build();
+        }
         if (inquiryRs instanceof BillInquiryRsV1 rsV1) {
             BillInquiryResponseV1 response = rsV1.getBillInquiryResponse();
             TokenData tokenData = gson.fromJson(response.getTokenData(), TokenData.class);
@@ -132,6 +178,20 @@ public class InquiryBanred {
 
         } else {
             throw new IllegalArgumentException("Tipo de respuesta desconocido: " + inquiryRs.getClass());
+        }
+    }
+
+    /**
+     * Decodifica el ResponseData V3 (token Q1) usando biller y sub-servicio ya resueltos.
+     * Nunca lanza excepcion: en caso de error, se loguea y se retorna null.
+     */
+    private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaConsultarDeuda inquiryRq,
+                                                      TipoOperacionToken operacion, TipoBiller biller, SubServicioMungye sub) {
+        try {
+            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, operacion);
+        } catch (Exception ex) {
+            log.error("No se pudo decodificar ResponseData V3: {}", ex.getMessage());
+            return null;
         }
     }
 

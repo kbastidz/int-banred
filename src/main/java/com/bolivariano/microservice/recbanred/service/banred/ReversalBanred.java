@@ -3,6 +3,7 @@ package com.bolivariano.microservice.recbanred.service.banred;
 import com.bolivariano.microservice.recbanred.core.constants.Defaults;
 import com.bolivariano.microservice.recbanred.core.constants.Labels;
 import com.bolivariano.microservice.recbanred.core.enums.TipoReverso;
+import com.bolivariano.microservice.recbanred.core.payloads.input.DatosAdicionales;
 import com.bolivariano.microservice.recbanred.core.payloads.output.AdditionalDataReversal;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarReverso;
 import com.bolivariano.microservice.recbanred.core.payloads.output.MensajeSalidaEjecutarPago;
@@ -12,6 +13,13 @@ import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v1.Bil
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v1.BillPaymentReversalRsV1;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillPaymentReversalResponseV2;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillPaymentReversalRsV2;
+import com.bolivariano.microservice.recbanred.core.enums.banred.SubServicioMungye;
+import com.bolivariano.microservice.recbanred.core.enums.banred.TipoBiller;
+import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionToken;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentReversalResponseV3;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentReversalRsV3;
+import com.bolivariano.microservice.recbanred.service.banred.v3.TokenDataV3Utils;
+import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.bolivariano.microservice.recbanred.service.BanredService;
 import com.bolivariano.microservice.recbanred.util.AdditionalDataUtils;
 import com.bolivariano.microservice.recbanred.util.BusinessUtils;
@@ -35,15 +43,21 @@ public class ReversalBanred {
     private final TokenDataUtils tokenDataUtils;
     private final BanredService banredService;
     private final AdditionalDataUtils addDataUtils;
+    private final TokenDataV3Utils tokenDataV3Utils;
+    private final BillerResolver billerResolver;
 
     public ReversalBanred(BusinessUtils businessUtils,
                           BanredService banredService,
                           TokenDataUtils tokenDataUtils,
-                          AdditionalDataUtils addDataUtils) {
+                          AdditionalDataUtils addDataUtils,
+                          TokenDataV3Utils tokenDataV3Utils,
+                          BillerResolver billerResolver) {
         this.businessUtils = businessUtils;
         this.banredService = banredService;
         this.tokenDataUtils = tokenDataUtils;
         this.addDataUtils = addDataUtils;
+        this.tokenDataV3Utils = tokenDataV3Utils;
+        this.billerResolver = billerResolver;
     }
 
     private static final Gson gson = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
@@ -88,6 +102,22 @@ public class ReversalBanred {
                     .build();
 
         }
+        if (paymentRs instanceof BillPaymentReversalRsV3 rsV3) {
+            BillPaymentReversalResponseV3 response = rsV3.getBillPaymentReversalResponse();
+            DatosAdicionales datosAdicionales = this.parseResponseDataV3Safe(response.getResponseData(), reversalRq);
+
+            return MensajeSalidaEjecutarPago.builder()
+                    .codigoError(this.businessUtils.getErrorCode(response.getResultCode()))
+                    .fechaDebito(CommonUtils.formatDate(new Date(), Defaults.FULLDATE_FORMAT))
+                    .fechaPago(CommonUtils.formatDate(new Date(), Defaults.FULLDATE_FORMAT))
+                    .banderaOffline(null)
+                    .mensajeUsuario(response.getErrorMessage())
+                    .mensajeSistema(null)
+                    .montoTotal(null)
+                    .referencia(TokenDataV3Utils.getValor(datosAdicionales, "COD_AUTORIZACION"))
+                    .datosAdicionales(datosAdicionales)
+                    .build();
+        }
         if (paymentRs instanceof BillPaymentReversalRsV1 rsV1) {
             BillPaymentReversalResponseV1 response = rsV1.getBillPaymentReversalResponse();
             TokenData tokenData = gson.fromJson(response.getTokenData(), TokenData.class);
@@ -105,6 +135,19 @@ public class ReversalBanred {
                     .build();
         } else {
             throw new IllegalArgumentException("Tipo de respuesta desconocido: " + paymentRs.getClass());
+        }
+    }
+
+    private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaEjecutarReverso reversalRq) {
+        try {
+            String companyCode = AdditionalDataUtils.getValueAdditionalData(reversalRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
+            TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
+            int billServiceCode = CommonUtils.convertToInteger(reversalRq.getServicio().getCodigoConvenio());
+            SubServicioMungye sub = biller == TipoBiller.MUNGYE ? this.billerResolver.resolverSubServicioMungye(billServiceCode) : null;
+            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, TipoOperacionToken.REVERSAL);
+        } catch (Exception ex) {
+            log.error("No se pudo decodificar ResponseData V3: {}", ex.getMessage());
+            return null;
         }
     }
 }

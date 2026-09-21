@@ -76,6 +76,7 @@ public class Labels {
     public static final String CODIGO_EMPRESA = "codigoEmpresa";
     public static final String TIPO_FLUJO = "tipoFlujo";
     public static final String TRANSACTION_TIME = "transactionTime";
+    public static final String TOKEN1 = "token1";
 
     public static final String DOCTRX_PAYMENT = "DocTrxPago";
     public static final String DOCTRX_REVERSAL = "DocTrxReverso";
@@ -102,5 +103,7 @@ public class Labels {
     public static final String TRX_TIME = "e_phoralocal";
     public static final String TX_CODE = "e_cod_grupo";
     public static final String FRM_PAGO = "e_cod_consultora";
+
+    public static final String COD_SENAE = "940";
 
 }

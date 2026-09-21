@@ -13,9 +13,13 @@ import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v1.*;
 import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v2.BillPaymentReversalRqV2;
 import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v2.BillPaymentRqV2;
 import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v2.*;
+import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.BillInquiryRqV3;
+import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.BillPaymentReversalRqV3;
+import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.BillPaymentRqV3;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaConsultarDeuda;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarPago;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarReverso;
+import com.bolivariano.microservice.recbanred.service.banred.v3.BanredServiceV3;
 import com.bolivariano.microservice.recbanred.service.soap.BanredWebClient;
 import com.bolivariano.microservice.recbanred.util.*;
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +46,7 @@ public class BanredService {
     private final BanredWebClient webClient;
     private final CompressorUtils compressorUtils;
     private final AdditionalDataUtils addDataUtils;
+    private final BanredServiceV3 banredServiceV3;
 
     public BanredService(BanredConfiguration banredConfig,
                          CompanyConfiguration companyConfig,
@@ -49,7 +54,8 @@ public class BanredService {
                          BusinessUtils businessUtils,
                          BanredWebClient webClient,
                          CompressorUtils compressorUtils,
-                         AdditionalDataUtils addDataUtils) {
+                         AdditionalDataUtils addDataUtils,
+                         BanredServiceV3 banredServiceV3) {
         this.banredConfig = banredConfig;
         this.companyConfig = companyConfig;
         this.migCompanyConfig = migCompanyConfig;
@@ -57,6 +63,7 @@ public class BanredService {
         this.webClient = webClient;
         this.compressorUtils = compressorUtils;
         this.addDataUtils = addDataUtils;
+        this.banredServiceV3 = banredServiceV3;
     }
 
     /**
@@ -82,6 +89,11 @@ public class BanredService {
                 if (TipoVersion.V1.equals(versionType))
                      request = BillInquiryRqV1.builder().billInquiryRequest(prepareInquiryRequestV1(inquiryRq, additionalData, versionConfig))
                              .build();
+
+                if (TipoVersion.V3.equals(versionType))
+                    request = BillInquiryRqV3.builder().billInquiryRequest(
+                                    this.banredServiceV3.prepareInquiryRequestV3(inquiryRq, additionalData, versionConfig))
+                            .build();
 
                 return this.webClient.invokeSOAP(request, versionType, companyCode);
             } catch (Exception ex) {
@@ -167,6 +179,11 @@ public class BanredService {
 
                 if (TipoVersion.V1.equals(versionType))
                     request = BillPaymentRqV1.builder().billPaymentRequest(preparePaymentRequestV1(paymentRq, additionalData, versionConfig))
+                            .build();
+
+                if (TipoVersion.V3.equals(versionType))
+                    request = BillPaymentRqV3.builder().billPaymentRequest(
+                                    this.banredServiceV3.preparePaymentRequestV3(paymentRq, additionalData, versionConfig))
                             .build();
 
                 return this.webClient.invokeSOAP(request, versionType, companyCode);
@@ -292,6 +309,9 @@ public class BanredService {
                     .build();
             case V1 -> (T) BillPaymentReversalRqV1.builder()
                     .billPaymentReversalRequest(prepareReversalRequestV1(reversalRq, additionalData))
+                    .build();
+            case V3 -> (T) BillPaymentReversalRqV3.builder()
+                    .billPaymentReversalRequest(this.banredServiceV3.prepareReversalRequestV3(reversalRq, additionalData, versionConfig))
                     .build();
             default -> {
                 log.error("VERSION NO SOPORTADA {}", versionType);

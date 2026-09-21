@@ -15,6 +15,10 @@ import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v1.Bil
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillInquiryRsV2;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillPaymentReversalRsV2;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v2.BillPaymentRsV2;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillInquiryRsV3;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentReversalRsV3;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentRsV3;
+import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.BooleanUtils;
@@ -45,18 +49,21 @@ public class BusinessUtils {
     private final CompressorUtils compressorUtils;
     private final AdditionalDataUtils addDataUtils;
     private final AutoReversalConfiguration autoReversalConfig;
+    private final BillerResolver billerResolver;
 
     public BusinessUtils(BanredConfiguration banredConfig,
                          CompanyConfiguration companyConfig,
                          CompressorUtils compressorUtils,
                          AdditionalDataUtils addDataUtils,
-                         AutoReversalConfiguration autoReversalConfig) {
+                         AutoReversalConfiguration autoReversalConfig,
+                         BillerResolver billerResolver) {
         this.banredConfig = banredConfig;
         this.companyConfig = companyConfig;
         this.responseClassMap = this.createResponseClassMap();
         this.compressorUtils = compressorUtils;
         this.addDataUtils = addDataUtils;
         this.autoReversalConfig = autoReversalConfig;
+        this.billerResolver = billerResolver;
     }
 
     public Long formatPaidAmountToBanred(BigDecimal amount) {
@@ -412,8 +419,15 @@ public class BusinessUtils {
                 "BillPaymentReversalRqV2", BillPaymentReversalRsV2.class
         );
 
+        Map<String, Class<?>> v3Map = Map.of(
+                "BillInquiryRqV3", BillInquiryRsV3.class,
+                "BillPaymentRqV3", BillPaymentRsV3.class,
+                "BillPaymentReversalRqV3", BillPaymentReversalRsV3.class
+        );
+
         map.put(TipoVersion.V1, v1Map);
         map.put(TipoVersion.V2, v2Map);
+        map.put(TipoVersion.V3, v3Map);
 
         return Collections.unmodifiableMap(map);
     }
@@ -461,6 +475,9 @@ public class BusinessUtils {
         if (StringUtils.isNotEmpty(companyCode)) {
             if (this.companyConfig.getValidEnterpriseV1().equalsIgnoreCase(companyCode))
                 return TipoVersion.V1;
+            // 09092026 - LL: Empresas de trama fija Q0/Q1 (CNEL, MEER, MUNGYE) usan V3
+            if (this.billerResolver.esCompanyV3(companyCode))
+                return TipoVersion.V3;
              else
                 return TipoVersion.V2;
         } else {

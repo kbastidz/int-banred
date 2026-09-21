@@ -363,6 +363,7 @@ public class AdditionalDataUtils {
         if (paymentObligation != null) {
             var header = paymentObligation.getHeader();
             var infoPerson = paymentObligation.getInfoPerson();
+            var additionalBiller = paymentObligation.getAdditionalBiller();
 
             if (header != null) {
                 additionalData.add(new DatoAdicional(Labels.CATEGORY, header.getCategory()));
@@ -376,6 +377,10 @@ public class AdditionalDataUtils {
                 additionalData.add(new DatoAdicional(Labels.FULLNAME, infoPerson.getFullName()));
                 additionalData.add(new DatoAdicional(Labels.TELEPHONE, infoPerson.getTelephone()));
                 additionalData.add(new DatoAdicional(Labels.EMAIL, infoPerson.getEmail()));
+            }
+
+            if((!additionalBiller.isEmpty()) && Labels.COD_SENAE.equals(inquiryRq.getServicio().getCodigoEmpresa())){
+                additionalData.add(new DatoAdicional(Labels.TOKEN1, buildTokenT1(paymentObligation)));
             }
         }
     }
@@ -796,4 +801,32 @@ public class AdditionalDataUtils {
         }
         return txCode.trim();
     }
+
+    private static String buildTokenT1(AdditionalDataPayment.AdditionalData.Detail.PaymentObligation paymentObligation) {
+        AdditionalDataPayment.AdditionalData.Detail.PaymentObligation.InfoPerson infoPerson =
+                (paymentObligation != null) ? paymentObligation.getInfoPerson() : null;
+
+        List<AdditionalDataPayment.AdditionalData.Detail.PaymentObligation.AdditionalBiller> billers =
+                (paymentObligation != null) ? paymentObligation.getAdditionalBiller() : null;
+
+        String documentID = (infoPerson != null) ? infoPerson.getDocumentID() : null;
+        String fullName = (infoPerson != null) ? infoPerson.getFullName() : null;
+
+        String ruc = CommonUtils.safePadLeft(documentID, 13, '0');
+        String nombre = CommonUtils.safePadRight(fullName, 40, ' ');
+
+        String codigoRaw = CommonUtils.extractByName(billers, Defaults.CUSTOMOFICCE);
+        String referenciaRaw = CommonUtils.extractByName(billers, Defaults.REFERENCE);
+
+        String codigo = CommonUtils.safePadLeft(codigoRaw, 3, '0');
+        String referencia = CommonUtils.safePadRight(referenciaRaw, 30, ' ');
+        String valorNc = CommonUtils.safePadLeft("", 12, '0'); // placeholder hasta definir fuente real
+
+        String body = ruc + nombre + codigo + referencia + valorNc;
+
+        String header = String.format("! T1%05d", body.length());
+        return header + " " + body;
+    }
+
+
 }

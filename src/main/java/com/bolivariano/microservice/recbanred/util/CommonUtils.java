@@ -1,6 +1,7 @@
 package com.bolivariano.microservice.recbanred.util;
 
 import com.bolivariano.microservice.recbanred.core.constants.Defaults;
+import com.bolivariano.microservice.recbanred.core.payloads.AdditionalDataPayment;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -62,6 +65,52 @@ public class CommonUtils {
             return Defaults.EMPTY;
 
         return StringUtils.isNotEmpty(value) ? value : defaultValue;
+    }
+
+    public static String safePadLeft(String value, int length, char padChar) {
+        String v = (value == null) ? "" : value;
+        if (v.length() >= length) {
+            return v.length() == length ? v : v.substring(v.length() - length);
+        }
+        return CommonUtils.padLeft(v, length, padChar);
+    }
+
+    public static String safePadRight(String value, int length, char padChar) {
+        String v = (value == null) ? "" : value;
+        if (v.length() >= length) {
+            return v.length() == length ? v : v.substring(0, length);
+        }
+        return CommonUtils.padRight(v, length, padChar);
+    }
+
+    public static String padLeft(String value, int length, char padChar) {
+        String v = value == null ? "" : value;
+        if (v.length() > length) return v.substring(v.length() - length); // trunca por la izquierda si se pasa
+        StringBuilder sb = new StringBuilder();
+        for (int i = v.length(); i < length; i++) sb.append(padChar);
+        return sb.append(v).toString();
+    }
+
+    public static String padRight(String value, int length, char padChar) {
+        String v = value == null ? "" : value;
+        if (v.length() > length) return v.substring(0, length); // trunca por la derecha si se pasa
+        StringBuilder sb = new StringBuilder(v);
+        for (int i = v.length(); i < length; i++) sb.append(padChar);
+        return sb.toString();
+    }
+
+    public static String extractByName(List<AdditionalDataPayment.AdditionalData.Detail.PaymentObligation.AdditionalBiller> billers, String name) {
+        if (billers == null || billers.isEmpty() || name == null) {
+            return "";
+        }
+
+        return billers.stream()
+                .filter(Objects::nonNull)
+                .filter(b -> name.equalsIgnoreCase(b.getName())) // equalsIgnoreCase ya maneja b.getName() == null devolviendo false sin NPE, porque el literal "name" nunca es null aquí
+                .map(AdditionalDataPayment.AdditionalData.Detail.PaymentObligation.AdditionalBiller::getValue)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("");
     }
 
 

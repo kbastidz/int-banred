@@ -31,12 +31,15 @@ public class CompanyConfiguration {
     public static class Versions {
         private VersionConfig v1;
         private VersionConfig v2;
+        private VersionConfig v3;
 
         public VersionConfig getVersionForType(TipoVersion versionType) {
             if (versionType.equals(TipoVersion.V1))
                 return v1;
             if (versionType.equals(TipoVersion.V2))
                 return v2;
+            if (versionType.equals(TipoVersion.V3))
+                return v3;
             return null;
         }
     }
