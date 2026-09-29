@@ -78,6 +78,10 @@ company:
         formatDate: ddMMyyyy
         formatTime: HHmmss
         url: https://soavirt-route-bb-dev-parasoft.apps.ocpbbdevqantx.desabbol.fin.ec/Proxy_Banred_V2_TANGO/Service1.asmx
+      v3:
+        format-date: "ddMMyyyy"
+        format-time: "HHmmss"
+      # V4 no usa URL HTTP – conexión TCP directa configurada en mun-quito.*
 
 mig_company:
   company_migrates: "2259,8453" #(2259-361)
@@ -149,3 +153,28 @@ security:
 
 encryption:
   usuario: esbsswsd1
+
+biller:
+  v3:
+    companies-cnel: "2254"          # BillCompanyCode(s) de CNEL, separados por coma si son varios
+    companies-meer: "2261"
+    companies-mungye: "2245"
+    cnel:
+      cod-institucion-financiera: "03033"
+      cod-operador: "BBL001"
+    meer:
+      cod-institucion-financiera: "00000"
+      cod-operador: "0000000000"
+    mungye:
+      cod-institucion-financiera: "00597777"   # ABA
+      cod-operador: "000000998"
+
+# ── V4: Municipio del Distrito Metropolitano de Quito (ISO 8583 TCP) ─────────
+mun-quito:
+  host: ""                          # Completar con IP/hostname asignado por el Municipio
+  port: 0                           # Completar con el puerto TCP asignado
+  companies: "2300"                 # BillCompanyCode asignado por Banred al Municipio de Quito
+  acquirer-aba: "06597777"          # Bit 32: ABA institución adquirente (extraído de tramas)
+  product-code: "0010031004"        # Bit 52: código de producto Municipio (fijo según ficha técnica)
+  header-prefix: "ISO01400007"      # Prefijo fijo del header de la trama
+  header-institution: "3"           # Dígito de institución en el header

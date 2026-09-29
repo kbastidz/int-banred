@@ -12,5 +12,7 @@ public enum TipoBiller {
 
     CNEL,
     MEER,
-    MUNGYE
+    MUNGYE,
+    /** Municipio del Distrito Metropolitano de Quito – ISO 8583 TCP (V4) */
+    MUNQUITO
 }

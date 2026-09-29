@@ -20,7 +20,7 @@ import com.bolivariano.microservice.recbanred.core.enums.banred.TipoBiller;
 import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionToken;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillInquiryResponseV3;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillInquiryRsV3;
-import com.bolivariano.microservice.recbanred.service.banred.v3.TokenDataV3Utils;
+import com.bolivariano.microservice.recbanred.service.banred.v4.IsoMunQuitoParser;
 import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.bolivariano.microservice.recbanred.service.BanredService;
 import com.bolivariano.microservice.recbanred.util.*;
@@ -170,9 +170,90 @@ public class InquiryBanred {
                     .textoAyuda(null)
                     .build();
 
+        }
+        // V4 – Municipio de Quito: ISO 8583 TCP
+        if (inquiryRs instanceof IsoMunQuitoParser.RespuestaIso rsV4) {
+            return mapV4Consulta(rsV4, inquiryRq);
         } else {
             throw new IllegalArgumentException("Tipo de respuesta desconocido: " + inquiryRs.getClass());
         }
+    }
+
+    /**
+     * Mapea la respuesta ISO 8583 (V4 – Municipio de Quito) a MensajeSalidaConsultarDeuda.
+     * Construye los Recibos a partir del arreglo de deudas (Bit 67) y
+     * persiste el arreglo1 y arreglo2 en datosAdicionales para que el pago
+     * pueda reenviarlos en los Bits 67/68.
+     */
+    private MensajeSalidaConsultarDeuda mapV4Consulta(IsoMunQuitoParser.RespuestaIso rsV4,
+                                                       MensajeEntradaConsultarDeuda inquiryRq) {
+        // Recibos: uno por cada deuda del Bit 67
+        List<Recibo> listaRecibos = new ArrayList<>();
+        if (rsV4.detallesDeuda != null) {
+            for (IsoMunQuitoParser.DetalleDeuda dd : rsV4.detallesDeuda) {
+                Recibo r = new Recibo();
+                r.setComprobante(dd.codigoTipoImpuesto);
+                r.setConcepto(dd.descripcion != null ? dd.descripcion.trim() : "");
+                r.setFecha(dd.anioDeuda);
+                BigDecimal monto = dd.montoDeuda != null
+                        ? new java.math.BigDecimal(dd.montoDeuda.trim()).divide(new java.math.BigDecimal(100))
+                        : BigDecimal.ZERO;
+                r.setTotalAPagar(monto);
+                r.setValor(monto);
+                r.setPago(monto);
+                listaRecibos.add(r);
+            }
+        }
+
+        BigDecimal montoTotal = rsV4.getMontoTotal();
+
+        // Datos adicionales: expone campos clave de la respuesta al consumidor
+        com.bolivariano.microservice.recbanred.core.payloads.input.DatosAdicionales da =
+                buildDatosAdicionalesV4Consulta(rsV4);
+
+        return MensajeSalidaConsultarDeuda.builder()
+                .codigoError(rsV4.codigoResultado != null ? rsV4.codigoResultado : "")
+                .datosAdicionales(da)
+                .fechaVencimiento(rsV4.fechaCompensacion != null ? rsV4.fechaCompensacion : "")
+                .formaPago(null)
+                .formaPagoRecibos(null)
+                .identificadorDeuda(rsV4.llaveMunicipal)
+                .limiteMontoMaximo(montoTotal)
+                .limiteMontoMinimo(BigDecimal.ZERO)
+                .mensajeUsuario(null)
+                .mensajeSistema(null)
+                .montoMinimo(BigDecimal.ZERO)
+                .montoTotal(montoTotal)
+                .nombreCliente(rsV4.nombreContribuyente)
+                .recibos(listaRecibos.isEmpty() ? null : new Recibos(listaRecibos))
+                .textoAyuda(null)
+                .build();
+    }
+
+    /** Construye DatosAdicionales con los campos de respuesta V4 que necesita el consumidor. */
+    private com.bolivariano.microservice.recbanred.core.payloads.input.DatosAdicionales buildDatosAdicionalesV4Consulta(
+            IsoMunQuitoParser.RespuestaIso rs) {
+        List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista = new ArrayList<>();
+        addDa(lista, "nombre_contribuyente",   rs.nombreContribuyente);
+        addDa(lista, "documento",              rs.documento);
+        addDa(lista, "direccion",              rs.direccion);
+        addDa(lista, "secuencial_banred",      rs.secuencialBanred);
+        addDa(lista, "fecha_local",            rs.fechaLocal);
+        addDa(lista, "hora_local",             rs.horaLocal);
+        addDa(lista, "institucion_autorizadora", rs.institucionAutorizadora);
+        addDa(lista, "codigo_resultado",       rs.codigoResultado);
+        var da = new com.bolivariano.microservice.recbanred.core.payloads.input.DatosAdicionales();
+        da.setDatoAdicional(lista);
+        return da;
+    }
+
+    private void addDa(List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista,
+                        String codigo, String valor) {
+        if (valor == null) return;
+        var d = new com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional();
+        d.setCodigo(codigo);
+        d.setValor(valor);
+        lista.add(d);
     }
 
     /**

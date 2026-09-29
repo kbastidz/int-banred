@@ -20,6 +20,7 @@ import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntrada
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarPago;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarReverso;
 import com.bolivariano.microservice.recbanred.service.banred.v3.BanredServiceV3;
+import com.bolivariano.microservice.recbanred.service.banred.v4.BanredServiceV4;
 import com.bolivariano.microservice.recbanred.service.soap.BanredWebClient;
 import com.bolivariano.microservice.recbanred.util.*;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +48,7 @@ public class BanredService {
     private final CompressorUtils compressorUtils;
     private final AdditionalDataUtils addDataUtils;
     private final BanredServiceV3 banredServiceV3;
+    private final BanredServiceV4 banredServiceV4;
 
     public BanredService(BanredConfiguration banredConfig,
                          CompanyConfiguration companyConfig,
@@ -55,7 +57,8 @@ public class BanredService {
                          BanredWebClient webClient,
                          CompressorUtils compressorUtils,
                          AdditionalDataUtils addDataUtils,
-                         BanredServiceV3 banredServiceV3) {
+                         BanredServiceV3 banredServiceV3,
+                         BanredServiceV4 banredServiceV4) {
         this.banredConfig = banredConfig;
         this.companyConfig = companyConfig;
         this.migCompanyConfig = migCompanyConfig;
@@ -64,6 +67,7 @@ public class BanredService {
         this.compressorUtils = compressorUtils;
         this.addDataUtils = addDataUtils;
         this.banredServiceV3 = banredServiceV3;
+        this.banredServiceV4 = banredServiceV4;
     }
 
     /**
@@ -94,6 +98,10 @@ public class BanredService {
                     request = BillInquiryRqV3.builder().billInquiryRequest(
                                     this.banredServiceV3.prepareInquiryRequestV3(inquiryRq, additionalData, versionConfig))
                             .build();
+
+                // V4 – Municipio de Quito: ISO 8583 TCP directo (no usa SOAP)
+                if (TipoVersion.V4.equals(versionType))
+                    return this.banredServiceV4.executeConsulta(inquiryRq).cast(Object.class);
 
                 return this.webClient.invokeSOAP(request, versionType, companyCode);
             } catch (Exception ex) {
@@ -186,6 +194,10 @@ public class BanredService {
                                     this.banredServiceV3.preparePaymentRequestV3(paymentRq, additionalData, versionConfig))
                             .build();
 
+                // V4 – Municipio de Quito: ISO 8583 TCP directo
+                if (TipoVersion.V4.equals(versionType))
+                    return this.banredServiceV4.executePago(paymentRq).cast(Object.class);
+
                 return this.webClient.invokeSOAP(request, versionType, companyCode);
             } catch (Exception ex) {
                 log.error("ERROR EJECUTANDO PAGO: {}", ex.getMessage());
@@ -271,6 +283,11 @@ public class BanredService {
                 DatosAdicionales additionalData = reversalRq.getServicio().getDatosAdicionales();
                 String companyCode = AdditionalDataUtils.getValueAdditionalData(additionalData, E_BAND_AUTORIZADOR);
                 TipoVersion versionType = this.businessUtils.getVersionByEnterprise(companyCode);
+
+                // V4 – Municipio de Quito: ISO 8583 TCP directo (no usa SOAP ni tipo de reverso M/A)
+                if (TipoVersion.V4.equals(versionType))
+                    return this.banredServiceV4.executeReverso(reversalRq).cast(Object.class);
+
                 CompanyConfiguration.VersionConfig versionConfig = this.companyConfig.getVersions().getVersionForType(versionType);
                 Object request = this.getRequestExecuteReversal(reversalRq, versionType, versionConfig);
 
@@ -313,6 +330,7 @@ public class BanredService {
             case V3 -> (T) BillPaymentReversalRqV3.builder()
                     .billPaymentReversalRequest(this.banredServiceV3.prepareReversalRequestV3(reversalRq, additionalData, versionConfig))
                     .build();
+            // V4 no usa este método – se delega directamente en executeReversal()
             default -> {
                 log.error("VERSION NO SOPORTADA {}", versionType);
                 throw new CustomException("TIPO DE VERSION NO SOPORTADO", null, INTERNAL_ERROR);

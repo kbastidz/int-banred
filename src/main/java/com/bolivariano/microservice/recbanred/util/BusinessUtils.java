@@ -475,6 +475,9 @@ public class BusinessUtils {
         if (StringUtils.isNotEmpty(companyCode)) {
             if (this.companyConfig.getValidEnterpriseV1().equalsIgnoreCase(companyCode))
                 return TipoVersion.V1;
+            // Municipio de Quito – ISO 8583 TCP (V4)
+            if (this.billerResolver.esCompanyV4(companyCode))
+                return TipoVersion.V4;
             // 09092026 - LL: Empresas de trama fija Q0/Q1 (CNEL, MEER, MUNGYE) usan V3
             if (this.billerResolver.esCompanyV3(companyCode))
                 return TipoVersion.V3;
