@@ -86,5 +86,25 @@ public class BillerV3Configuration {
         private String codInstitucionFinanciera;
         /** Codigo de operador asignado por el biller. */
         private String codOperador;
+        /** Nombre del aceptante de tarjeta localizado para MUNGYE (Ecuador). */
+        private String cardAcceptorNameLocGye;
+        /** Numero de cuenta principal para MUNGYE (Ecuador). */
+        private String primaryAcctNumberGye;
+        /** Codigo del aceptante/terminal para MUNGYE (Ecuador). */
+        private String accpIdTellerCodeGye;
+        /** ID de la rama para MUNGYE (Ecuador). */
+        private String branchIdGye;
+        /** Modo de entrada del punto de venta para MUNGYE (Ecuador). */
+        private String posEntryModeGye;
+        /** Codigo de institucion receptora para MUNGYE (Ecuador). */
+        private String receivingInstitutionIdCodeGye;
+        /** Numero de cuenta principal para MUNGYE Pago (Ecuador). */
+        private String primaryAcctNumberPGye;
+        /** Cuenta financiera para MUNGYE (Ecuador). */
+        private String accountId1Gye;
+        /** Track2 para MUNGYE (Ecuador). */
+        private String track2Gye;
+        /** Formato de fecha para MUNGYE Pago (Ecuador). */
+        private String formatDatePGye;
     }
 }

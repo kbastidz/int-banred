@@ -77,6 +77,7 @@ public class Labels {
     public static final String TIPO_FLUJO = "tipoFlujo";
     public static final String TRANSACTION_TIME = "transactionTime";
     public static final String TOKEN1 = "token1";
+    public static final String VP_REFERENCE_1 = "vp_reference_1";//validar campo
 
     public static final String DOCTRX_PAYMENT = "DocTrxPago";
     public static final String DOCTRX_REVERSAL = "DocTrxReverso";

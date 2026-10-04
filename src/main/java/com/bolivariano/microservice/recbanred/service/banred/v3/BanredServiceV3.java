@@ -3,6 +3,7 @@ package com.bolivariano.microservice.recbanred.service.banred.v3;
 import com.bolivariano.microservice.recbanred.core.configuration.BanredConfiguration;
 import com.bolivariano.microservice.recbanred.core.configuration.BillerV3Configuration;
 import com.bolivariano.microservice.recbanred.core.configuration.CompanyConfiguration;
+
 import com.bolivariano.microservice.recbanred.core.enums.banred.SubServicioMungye;
 import com.bolivariano.microservice.recbanred.core.enums.banred.TipoBiller;
 import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionToken;
@@ -16,6 +17,7 @@ import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.Bill
 import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.BillPaymentReversalRequestV3;
 import com.bolivariano.microservice.recbanred.core.payloads.input.banred.v3.BillPaymentRequestV3;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.token.EspecificacionToken;
+import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.helper.DatosComplementarios;
 import com.bolivariano.microservice.recbanred.util.AdditionalDataUtils;
 import com.bolivariano.microservice.recbanred.util.BusinessUtils;
 import com.bolivariano.microservice.recbanred.util.CommonUtils;
@@ -31,6 +33,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.bolivariano.microservice.recbanred.core.constants.Labels.E_BAND_AUTORIZADOR;
+import static com.bolivariano.microservice.recbanred.core.constants.Labels.E_COD_OPERADOR;
+
 
 /**
  * Construye los requests SOAP V3 (Consulta, Pago, Reverso) para billers de
@@ -56,6 +60,7 @@ public class BanredServiceV3 {
     private final BillerResolver billerResolver;
     private final TokenSpecRegistry tokenSpecRegistry;
     private final TokenFieldEngine tokenFieldEngine;
+    private final DatosComplementarios datosComplementarios;
 
     public BanredServiceV3(BanredConfiguration banredConfig,
                             CompanyConfiguration companyConfig,
@@ -63,7 +68,8 @@ public class BanredServiceV3 {
                             BusinessUtils businessUtils,
                             BillerResolver billerResolver,
                             TokenSpecRegistry tokenSpecRegistry,
-                            TokenFieldEngine tokenFieldEngine) {
+                            TokenFieldEngine tokenFieldEngine,
+                            DatosComplementarios datosComplementarios) {
         this.banredConfig = banredConfig;
         this.companyConfig = companyConfig;
         this.billerV3Config = billerV3Config;
@@ -71,6 +77,7 @@ public class BanredServiceV3 {
         this.billerResolver = billerResolver;
         this.tokenSpecRegistry = tokenSpecRegistry;
         this.tokenFieldEngine = tokenFieldEngine;
+        this.datosComplementarios = datosComplementarios;
     }
 
     // ==================================================================
@@ -92,24 +99,24 @@ public class BanredServiceV3 {
 
         return BillInquiryRequestV3.builder()
                 .channel(this.businessUtils.getChannel(inquiryRq.getCanal()))
-                .primaryAcctNumber(this.banredConfig.getPrimaryAcctNumber())
+                .primaryAcctNumber(datosComplementarios.getPrimaryAcctNumber(companyCode))
                 .txCode(this.banredConfig.getTxCodeConsulta())
                 .acquirerAuditNumber(inquiryRq.getSecuencial())
                 .transactionTime(CommonUtils.formatDate(new Date(), versionConfig.getFormatTime()))
                 .transactionDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
                 .businessDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
                 .captureDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
-                .posEntryMode(this.banredConfig.getPosEntryMode())
+                .posEntryMode(datosComplementarios.getPosEntryMode(companyCode))
                 .cardSequenceNumber(this.businessUtils.getCardSequenceNumberByChannel(inquiryRq.getCanal()))
                 .acquirerInstitutionID(this.banredConfig.getAcquirerInstitutionID())
                 .track2(AdditionalDataUtils.getAdditionalDataOrDefault(additionalData, "track2", StringUtils.EMPTY))
                 .retrievalReferenceNumber(inquiryRq.getSecuencial())
-                .terminalNumber(this.banredConfig.getAccpIdTellerCode())
+                .terminalNumber(datosComplementarios.getAccpIdTellerCode(companyCode))
                 .cardAcceptorIdCode(this.banredConfig.getAccpIdTellerCode())
-                .cardAcceptorNameLoc(this.banredConfig.getCardAcceptorNameLoc())
+                .cardAcceptorNameLoc(datosComplementarios.getCardAcceptorNameLoc(companyCode))
                 .currencyCode(this.banredConfig.getCurrencyCode())
-                .terminalData(this.banredConfig.getAccpIdTellerCode())
-                .receivingInstitutionIdCode(this.banredConfig.getReceivingInstitutionIdCode())
+                .terminalData(datosComplementarios.getAccpIdTellerCode(companyCode))
+                .receivingInstitutionIdCode(datosComplementarios.getReceivingInstitutionIdCode(companyCode))
                 .accountId1(this.banredConfig.getAccountId1())
                 .tellerCode(this.banredConfig.getAccpIdTellerCode())
                 .billReference(inquiryRq.getServicio().getIdentificador())
@@ -117,7 +124,7 @@ public class BanredServiceV3 {
                 .billCompanyCode(Integer.parseInt(companyCode))
                 .routingData(this.banredConfig.getRoutingData())
                 .inputData(inputData)
-                .branchCode(this.banredConfig.getBranchId())
+                .branchCode(datosComplementarios.getBranchId(companyCode))
                 .build();
     }
 
@@ -139,35 +146,40 @@ public class BanredServiceV3 {
         valores.put("VALOR_PAGADO", paymentRq.getValorPago() == null ? "0" : paymentRq.getValorPago().toPlainString());
         String inputData = tokenFieldEngine.buildQ0(specQ0, valores);
 
+        String formatDate = datosComplementarios.getFormatDatePago(companyCode) != null
+                ? datosComplementarios.getFormatDatePago(companyCode)
+                : versionConfig.getFormatDate();
+        String date = CommonUtils.formatDate(new Date(), formatDate);
+
         return BillPaymentRequestV3.builder()
                 .channel(this.businessUtils.getChannel(paymentRq.getCanal()))
-                .primaryAcctNumber(this.banredConfig.getPrimaryAcctNumber())
+                .primaryAcctNumber(datosComplementarios.getPrimaryAcctNumberPago(companyCode))
                 .txCode(this.businessUtils.validateAndReturnTxCode(paymentRq.getCuenta(), paymentRq.getTipoCuenta()))
                 .amount(this.businessUtils.formatPaidAmountToBanred(paymentRq.getValorPago()))
                 .acquirerAuditNumber(paymentRq.getSecuencial())
                 .transactionTime(CommonUtils.formatDate(new Date(), versionConfig.getFormatTime()))
-                .transactionDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
-                .businessDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
-                .captureDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
+                .transactionDate(date)
+                .businessDate(date)
+                .captureDate(date)
                 .posEntryMode(this.banredConfig.getPosEntryMode())
                 .cardSequenceNumber(this.businessUtils.getCardSequenceNumberByChannel(paymentRq.getCanal()))
                 .acquirerInstitutionID(this.banredConfig.getAcquirerInstitutionID())
-                .track2(StringUtils.EMPTY)
+                .track2(AdditionalDataUtils.getAdditionalDataOrDefault(additionalData, "track2", StringUtils.EMPTY))
                 .retrievalReferenceNumber(paymentRq.getSecuencial())
-                .terminalNumber(this.banredConfig.getAccpIdTellerCode())
+                .terminalNumber(datosComplementarios.getAccpIdTellerCode(companyCode))
                 .cardAcceptorIdCode(this.banredConfig.getAccpIdTellerCode())
-                .cardAcceptorNameLoc(this.banredConfig.getCardAcceptorNameLoc())
+                .cardAcceptorNameLoc(datosComplementarios.getCardAcceptorNameLoc(companyCode))
                 .currencyCode(this.banredConfig.getCurrencyCode())
-                .terminalData(this.banredConfig.getAccpIdTellerCode())
-                .receivingInstitutionIdCode(this.banredConfig.getReceivingInstitutionIdCode())
+                .terminalData(datosComplementarios.getAccpIdTellerCode(companyCode))
+                .receivingInstitutionIdCode(datosComplementarios.getReceivingInstitutionIdCode(companyCode))
                 .accountId1(StringUtils.isNotEmpty(paymentRq.getCuenta()) ? paymentRq.getCuenta() : this.banredConfig.getAccountId1())
-                .financialAccount(this.banredConfig.getAccountId1())
+                .financialAccount(datosComplementarios.getAccountId1Gye(companyCode))
                 .billReference(paymentRq.getServicio().getIdentificador())
                 .billServiceCode(billServiceCode)
                 .billCompanyCode(Integer.parseInt(companyCode))
                 .routingData(this.banredConfig.getRoutingData())
                 .inputData(inputData)
-                .branchCode(this.banredConfig.getBranchId())
+                .branchCode(datosComplementarios.getBranchId(companyCode))
                 .build();
     }
 
@@ -191,7 +203,7 @@ public class BanredServiceV3 {
 
         return BillPaymentReversalRequestV3.builder()
                 .channel(this.businessUtils.getChannel(reversalRq.getCanal()))
-                .primaryAcctNumber(this.banredConfig.getPrimaryAcctNumber())
+                .primaryAcctNumber(datosComplementarios.getPrimaryAcctNumber(companyCode))
                 .txCode(this.businessUtils.validateAndReturnTxCode(reversalRq.getCuenta(), reversalRq.getTipoCuenta()))
                 .amount(this.businessUtils.formatPaidAmountToBanred(reversalRq.getValorPago()))
                 .acquirerAuditNumber(reversalRq.getSecuencial())
@@ -199,17 +211,17 @@ public class BanredServiceV3 {
                 .transactionDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
                 .businessDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
                 .captureDate(CommonUtils.formatDate(new Date(), versionConfig.getFormatDate()))
-                .posEntryMode(this.banredConfig.getPosEntryMode())
+                .posEntryMode(datosComplementarios.getPosEntryMode(companyCode))
                 .cardSequenceNumber(this.businessUtils.getCardSequenceNumberByChannel(reversalRq.getCanal()))
                 .acquirerInstitutionID(this.banredConfig.getAcquirerInstitutionID())
-                .track2(StringUtils.EMPTY)
+                .track2(AdditionalDataUtils.getAdditionalDataOrDefault(additionalData, "track2", StringUtils.EMPTY))
                 .retrievalReferenceNumber(reversalRq.getSecuencial())
-                .terminalNumber(this.banredConfig.getAccpIdTellerCode())
+                .terminalNumber(datosComplementarios.getAccpIdTellerCode(companyCode))
                 .cardAcceptorIdCode(this.banredConfig.getAccpIdTellerCode())
-                .cardAcceptorNameLoc(this.banredConfig.getCardAcceptorNameLoc())
+                .cardAcceptorNameLoc(datosComplementarios.getCardAcceptorNameLoc(companyCode))
                 .currencyCode(this.banredConfig.getCurrencyCode())
-                .terminalData(this.banredConfig.getAccpIdTellerCode())
-                .receivingInstitutionIdCode(this.banredConfig.getReceivingInstitutionIdCode())
+                .terminalData(datosComplementarios.getAccpIdTellerCode(companyCode))
+                .receivingInstitutionIdCode(datosComplementarios.getReceivingInstitutionIdCode(companyCode))
                 .accountId1(StringUtils.isNotEmpty(reversalRq.getCuenta()) ? reversalRq.getCuenta() : this.banredConfig.getAccountId1())
                 .financialAccount(this.banredConfig.getAccountId1())
                 .billReference(reversalRq.getServicio().getIdentificador())
@@ -217,15 +229,12 @@ public class BanredServiceV3 {
                 .billCompanyCode(Integer.parseInt(companyCode))
                 .routingData(this.banredConfig.getRoutingData())
                 .inputData(inputData)
-                .branchCode(this.banredConfig.getBranchId())
+                .branchCode(datosComplementarios.getBranchId(companyCode))
                 .reversalIndicator(this.businessUtils.returnIndicatorReversal(true))
                 .originalData(reversalRq.getSecuencial())
                 .build();
     }
 
-    // ==================================================================
-    // HELPERS
-    // ==================================================================
 
     private Map<String, String> construirValoresBase(DatosAdicionales additionalData, TipoBiller biller, SubServicioMungye sub) {
         Map<String, String> valores = new HashMap<>();
@@ -235,11 +244,11 @@ public class BanredServiceV3 {
             case MEER -> billerV3Config.getMeer();
             case MUNGYE -> billerV3Config.getMungye();
         };
-
+        String codOperador = AdditionalDataUtils.getValueAdditionalData(additionalData, E_COD_OPERADOR);
         if (institucion != null) {
             valores.put("COD_INSTITUCION_FINANCIERA", institucion.getCodInstitucionFinanciera());
             valores.put("ABA_INSTITUCION", institucion.getCodInstitucionFinanciera());
-            valores.put("COD_OPERADOR", institucion.getCodOperador());
+            valores.put("COD_OPERADOR", codOperador);
         }
 
         // Convencion: cualquier DatoAdicional cuyo "codigo" coincida con el nombre

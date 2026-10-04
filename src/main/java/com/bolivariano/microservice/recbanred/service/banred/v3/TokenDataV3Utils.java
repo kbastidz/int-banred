@@ -1,5 +1,7 @@
 package com.bolivariano.microservice.recbanred.service.banred.v3;
 
+
+import com.bolivariano.microservice.recbanred.core.constants.Labels;
 import com.bolivariano.microservice.recbanred.core.enums.banred.SubServicioMungye;
 import com.bolivariano.microservice.recbanred.core.enums.banred.TipoBiller;
 import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionToken;
@@ -45,7 +47,7 @@ public class TokenDataV3Utils {
      * valor = valor decodificado), lista para exponer en el DTO de salida.
      */
     public DatosAdicionales parseResponseData(String responseData, TipoBiller biller, SubServicioMungye sub,
-                                               TipoOperacionToken operacion) {
+                                               TipoOperacionToken operacion, String canal) {
         if (StringUtils.isEmpty(responseData)) {
             log.warn("ResponseData vacio para {} / {} / {}", biller, sub, operacion);
             return null;
@@ -69,7 +71,7 @@ public class TokenDataV3Utils {
                 LinkedHashMap<String, String> valores = tokenFieldEngine.parseQ1(specQ1, responseData);
                 valores.forEach((campo, valor) -> lista.add(new DatoAdicional(campo, valor)));
             }
-
+            lista.add(new DatoAdicional(Labels.CANAL, canal));
             return new DatosAdicionales(lista);
         } catch (CustomException ex) {
             log.error("Error decodificando ResponseData V3 [{} / {} / {}]: {}", biller, sub, operacion, ex.getMessage());

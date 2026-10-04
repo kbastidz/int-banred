@@ -146,11 +146,11 @@ public class DataMaskingUtils {
             String sanitized = sanitizeFieldValue(original);
 
             if (!Objects.equals(sanitized, original)) {
-                log.warn("Campo adicional [{}] contenía caracteres peligrosos y fue saneado.", dato.getCodigo());
+                log.warn("Campo adicional [{}] contenía caracteres peligrosos y fue saneado.", Encode.forJava(dato.getCodigo()));
             }
 
             if (StringUtils.isNotEmpty(sanitized) && sanitized.length() > maxField) {
-                log.warn("Campo adicional [{}] supera {} caracteres. Se truncará.", dato.getCodigo(), maxField);
+                log.warn("Campo adicional [{}] supera {} caracteres. Se truncará.", Encode.forJava(dato.getCodigo()), maxField);
                 sanitized = sanitized.substring(0, maxField);
             }
 

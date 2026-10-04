@@ -247,30 +247,49 @@ public class TokenSpecRegistry {
                 numerico("ABA_INSTITUCION", 8),
                 alfa("COD_OPERADOR", 9)
         ));
-        // Spec OFICIAL, tomada directamente de la ficha "Anexo A.0" (hoja "TOKEN Q1 INQUIRY",
-        // bloque "MUNICIPIO GUAYAQUIL - CEP - Service Code 1"). Validada contra un ejemplo real
-        // de produccion: consume exactamente los 265 caracteres recibidos, sin sobrantes.
-        EspecificacionToken inquiryQ1 = new EspecificacionToken("MUNGYE-CEP-INQUIRY-Q1", List.of(
-                alfa("PROCESS_CODE", 7),            // Get from CodigoTramite field
-                numerico("TRANSACTION_YEAR", 4),     // Get from AnioTransaccion field
-                alfa("TRANSACTION_NUMBER", 10),      // Get from NumeroTransaccion field
-                alfa("TRANSACTION_DATE", 19),        // Get from FechaTransaccion, formato dd-MM-yyyy HH:mm:ss
-                alfa("IDENTIFICATION_NUMBER", 15),   // Get from NumeroIdentificacion field
-                variable("CUSTOMER_NAME"),           // Get from NombreContribuyente field
-                alfa("PREDIAL_CODE", 34),            // Get from CodigoPredial field
-                monto("TAX_AMOUNT", 11),             // ** Get from ValorTasa field
-                monto("DEBT_AMOUNT", 11),            // ** Get from ValorDeuda field
-                monto("FINE_AMOUNT", 11),            // ** Get from ValorMulta field
-                monto("INTEREST_AMOUNT", 11),        // ** Get from ValorInteres field
-                monto("COACTIVE_AMOUNT", 11),        // ** Get from ValorCoactiva field
-                monto("DISCOUNT_AMOUNT", 11),        // ** Get from ValorDescuento field
-                monto("TOTAL_AMOUNT", 11),           // ** Get from ValorTotal field
-                alfa("DUE_DATE", 19),                // Get from FechaExigibilidad field
-                variable("OBSERVATION1"),            // Get from Observacion1 field
-                variable("OBSERVATION2"),            // Get from Observacion2 field
-                variable("OBSERVATION3"),            // Get from Observacion3 field
-                alfa("RESULT_CODE", 6)               // Get from codigoDetalleResultado field
-        ));
+        // No se documenta un Q1 propio para CEP-Inquiry en la ficha (se resuelve via sobre SOAP)
+        //EspecificacionToken inquiryQ1 = new EspecificacionToken("MUNGYE-CEP-INQUIRY-Q1", List.of());
+
+        EspecificacionToken inquiryQ1 =
+                new EspecificacionToken(
+                        "MUNGYE-CEP-INQUIRY-Q1",
+                        List.of(
+
+                                alfa("PROCESS_CODE", 7),
+                                numerico("TRANSACTION_YEAR", 4),
+                                numerico("TRANSACTION_NUMBER", 10),
+                                alfa("TRANSACTION_DATE", 19),
+
+                                alfa("IDENTIFICATION_NUMBER", 15),
+
+                                //numerico("CUSTOMER_NAME_LENGTH", 2),
+                                variable("CUSTOMER_NAME"),
+
+                                alfa("PREDIAL_CODE", 34),
+
+                                monto("TAX_AMOUNT", 11),
+                                monto("DEBT_AMOUNT", 11),
+                                monto("FINE_AMOUNT", 11),
+                                monto("INTEREST_AMOUNT", 11),
+                                monto("COACTIVE_AMOUNT", 11),
+                                monto("DISCOUNT_AMOUNT", 11),
+                                monto("TOTAL_AMOUNT", 11),
+
+                                alfa("DUE_DATE", 19),
+
+                                //numerico("OBS1_LENGTH", 2),
+                                variable("OBSERVATION1"),
+
+                                //numerico("OBS2_LENGTH", 2),
+                                variable("OBSERVATION2"),
+
+                                //numerico("OBS3_LENGTH", 2),
+                                variable("OBSERVATION3"),
+
+                                numerico("RESULT_CODE", 6)
+                        )
+                );
+
         put(TipoBiller.MUNGYE, SubServicioMungye.CEP, TipoOperacionToken.INQUIRY, inquiryQ0, inquiryQ1);
 
         EspecificacionToken paymentQ0 = new EspecificacionToken("MUNGYE-CEP-PAYMENT-Q0", List.of(

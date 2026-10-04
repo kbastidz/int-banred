@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.owasp.encoder.Encode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -208,7 +209,7 @@ public class BusinessUtils {
 
                 if (companysConfig.isPresent() && companysConfig.get().supportsReversalType(reversalType)) {
                     log.info("APLICANDO TRAMA PERSONALIZADA REVERSO V2 PARA EMPRESA: {}, TIPO_REVERSO: {}",
-                            codigoEmpresa, reversalType);
+                            Encode.forJava(codigoEmpresa), Encode.forJava(reversalType));
                     return prepareAdditionalDataV2AutoReversal(datosAdicionales, companysConfig.get());
                 }
             }
@@ -475,9 +476,6 @@ public class BusinessUtils {
         if (StringUtils.isNotEmpty(companyCode)) {
             if (this.companyConfig.getValidEnterpriseV1().equalsIgnoreCase(companyCode))
                 return TipoVersion.V1;
-            // Municipio de Quito – ISO 8583 TCP (V4)
-            if (this.billerResolver.esCompanyV4(companyCode))
-                return TipoVersion.V4;
             // 09092026 - LL: Empresas de trama fija Q0/Q1 (CNEL, MEER, MUNGYE) usan V3
             if (this.billerResolver.esCompanyV3(companyCode))
                 return TipoVersion.V3;

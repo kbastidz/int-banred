@@ -12,7 +12,6 @@ import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionTok
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentResponseV3;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentRsV3;
 import com.bolivariano.microservice.recbanred.service.banred.v3.TokenDataV3Utils;
-import com.bolivariano.microservice.recbanred.service.banred.v4.IsoMunQuitoParser;
 import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.bolivariano.microservice.recbanred.core.payloads.input.MensajeEntradaEjecutarPago;
 import com.bolivariano.microservice.recbanred.core.payloads.output.MensajeSalidaEjecutarPago;
@@ -126,72 +125,19 @@ public class PaymentBanred {
                     .datosAdicionales(this.tokenDataUtils.getValueTokenDataResponse(tokenData, paymentRq, response))
                     .build();
 
-        }
-        // V4 – Municipio de Quito: ISO 8583 TCP
-        if (paymentRs instanceof IsoMunQuitoParser.RespuestaIso rsV4) {
-            return mapV4Pago(rsV4);
         } else {
             throw new IllegalArgumentException("Tipo de respuesta desconocido: " + paymentRs.getClass());
         }
-    }
-
-    /**
-     * Mapea la respuesta ISO 8583 de pago (V4 – Municipio de Quito) a MensajeSalidaEjecutarPago.
-     * El campo referencia lleva el número de autorización del Municipio (Bit 119).
-     */
-    private MensajeSalidaEjecutarPago mapV4Pago(IsoMunQuitoParser.RespuestaIso rsV4) {
-        DatosAdicionales da = buildDatosAdicionalesV4Pago(rsV4);
-        return MensajeSalidaEjecutarPago.builder()
-                .codigoError(rsV4.codigoResultado != null ? rsV4.codigoResultado : "")
-                .fechaDebito(CommonUtils.formatDate(new Date(), FULLDATE_FORMAT))
-                .fechaPago(CommonUtils.formatDate(new Date(), FULLDATE_FORMAT))
-                .banderaOffline(null)
-                .mensajeUsuario(null)
-                .mensajeSistema(null)
-                .montoTotal(rsV4.getMontoTotal())
-                .referencia(rsV4.numeroAutorizacion)
-                .datosAdicionales(da)
-                .build();
-    }
-
-    private DatosAdicionales buildDatosAdicionalesV4Pago(IsoMunQuitoParser.RespuestaIso rs) {
-        java.util.List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista = new java.util.ArrayList<>();
-        addDa(lista, "numero_autorizacion",    rs.numeroAutorizacion);
-        addDa(lista, "nombre_contribuyente",   rs.nombreContribuyente);
-        addDa(lista, "valor_total",            rs.valorTotal);
-        addDa(lista, "valor_rubro",            rs.valorRubro);
-        addDa(lista, "intereses",              rs.intereses);
-        addDa(lista, "descuento",              rs.descuento);
-        addDa(lista, "recargo",                rs.recargo);
-        addDa(lista, "costas",                 rs.costas);
-        addDa(lista, "fecha_emision",          rs.fechaEmision);
-        addDa(lista, "titulo_credito",         rs.tituloCreditoBit113);
-        addDa(lista, "avaluo_comercial",       rs.avaluoComercial);
-        addDa(lista, "secuencial_banred",      rs.secuencialBanred);
-        addDa(lista, "fecha_local",            rs.fechaLocal);
-        addDa(lista, "hora_local",             rs.horaLocal);
-        addDa(lista, "detalle_rubros",         rs.detalleRubros);
-        var da = new DatosAdicionales();
-        da.setDatoAdicional(lista);
-        return da;
-    }
-
-    private void addDa(java.util.List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista,
-                        String codigo, String valor) {
-        if (valor == null) return;
-        var d = new com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional();
-        d.setCodigo(codigo);
-        d.setValor(valor);
-        lista.add(d);
     }
 
     private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaEjecutarPago paymentRq) {
         try {
             String companyCode = AdditionalDataUtils.getValueAdditionalData(paymentRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
             TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
+            String canal = paymentRq.getCanal();
             int billServiceCode = CommonUtils.convertToInteger(paymentRq.getServicio().getCodigoConvenio());
             SubServicioMungye sub = biller == TipoBiller.MUNGYE ? this.billerResolver.resolverSubServicioMungye(billServiceCode) : null;
-            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, TipoOperacionToken.PAYMENT);
+            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, TipoOperacionToken.PAYMENT,canal);
         } catch (Exception ex) {
             log.error("No se pudo decodificar ResponseData V3: {}", ex.getMessage());
             return null;

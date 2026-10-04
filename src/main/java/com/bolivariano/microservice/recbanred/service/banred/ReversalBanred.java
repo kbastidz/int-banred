@@ -19,7 +19,6 @@ import com.bolivariano.microservice.recbanred.core.enums.banred.TipoOperacionTok
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentReversalResponseV3;
 import com.bolivariano.microservice.recbanred.core.payloads.output.banred.v3.BillPaymentReversalRsV3;
 import com.bolivariano.microservice.recbanred.service.banred.v3.TokenDataV3Utils;
-import com.bolivariano.microservice.recbanred.service.banred.v4.IsoMunQuitoParser;
 import com.bolivariano.microservice.recbanred.util.banred.v3.BillerResolver;
 import com.bolivariano.microservice.recbanred.service.BanredService;
 import com.bolivariano.microservice.recbanred.util.AdditionalDataUtils;
@@ -134,64 +133,19 @@ public class ReversalBanred {
                     .referencia(AdditionalDataUtils.getValueTokenDataGeneric(tokenData, Labels.NUM_DOC_IDENTIF))
                     .datosAdicionales(this.tokenDataUtils.getValueTokenDataResponse(tokenData, reversalRq, null))
                     .build();
-        }
-        // V4 – Municipio de Quito: ISO 8583 TCP
-        if (paymentRs instanceof IsoMunQuitoParser.RespuestaIso rsV4) {
-            return mapV4Reverso(rsV4);
         } else {
             throw new IllegalArgumentException("Tipo de respuesta desconocido: " + paymentRs.getClass());
         }
     }
 
-    /**
-     * Mapea la respuesta ISO 8583 de reverso (V4 – Municipio de Quito) a MensajeSalidaEjecutarPago.
-     * El reverso aprobado devuelve código resultado "00" y los datos de la tx original en Bit 56.
-     */
-    private MensajeSalidaEjecutarPago mapV4Reverso(IsoMunQuitoParser.RespuestaIso rsV4) {
-        DatosAdicionales da = buildDatosAdicionalesV4Reverso(rsV4);
-        return MensajeSalidaEjecutarPago.builder()
-                .codigoError(rsV4.codigoResultado != null ? rsV4.codigoResultado : "")
-                .fechaDebito(CommonUtils.formatDate(new Date(), Defaults.FULLDATE_FORMAT))
-                .fechaPago(CommonUtils.formatDate(new Date(), Defaults.FULLDATE_FORMAT))
-                .banderaOffline(null)
-                .mensajeUsuario(null)
-                .mensajeSistema(null)
-                .montoTotal(null)
-                .referencia(rsV4.secuencialBanred)
-                .datosAdicionales(da)
-                .build();
-    }
-
-    private DatosAdicionales buildDatosAdicionalesV4Reverso(IsoMunQuitoParser.RespuestaIso rs) {
-        java.util.List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista =
-                new java.util.ArrayList<>();
-        addDa(lista, "codigo_resultado",       rs.codigoResultado);
-        addDa(lista, "secuencial_banred",      rs.secuencialBanred);
-        addDa(lista, "secuencial_adquirente",  rs.secuencialAdquirente);
-        addDa(lista, "institucion_autorizadora", rs.institucionAutorizadora);
-        addDa(lista, "fecha_local",            rs.fechaLocal);
-        addDa(lista, "hora_local",             rs.horaLocal);
-        var da = new DatosAdicionales();
-        da.setDatoAdicional(lista);
-        return da;
-    }
-
-    private void addDa(java.util.List<com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional> lista,
-                        String codigo, String valor) {
-        if (valor == null) return;
-        var d = new com.bolivariano.microservice.recbanred.core.payloads.input.DatoAdicional();
-        d.setCodigo(codigo);
-        d.setValor(valor);
-        lista.add(d);
-    }
-
     private DatosAdicionales parseResponseDataV3Safe(String responseData, MensajeEntradaEjecutarReverso reversalRq) {
         try {
             String companyCode = AdditionalDataUtils.getValueAdditionalData(reversalRq.getServicio().getDatosAdicionales(), Labels.E_BAND_AUTORIZADOR);
+            String canal= reversalRq.getCanal();
             TipoBiller biller = this.billerResolver.resolverBiller(companyCode);
             int billServiceCode = CommonUtils.convertToInteger(reversalRq.getServicio().getCodigoConvenio());
             SubServicioMungye sub = biller == TipoBiller.MUNGYE ? this.billerResolver.resolverSubServicioMungye(billServiceCode) : null;
-            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, TipoOperacionToken.REVERSAL);
+            return this.tokenDataV3Utils.parseResponseData(responseData, biller, sub, TipoOperacionToken.REVERSAL,canal);
         } catch (Exception ex) {
             log.error("No se pudo decodificar ResponseData V3: {}", ex.getMessage());
             return null;

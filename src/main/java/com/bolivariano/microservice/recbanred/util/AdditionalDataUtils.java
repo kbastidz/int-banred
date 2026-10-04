@@ -380,7 +380,11 @@ public class AdditionalDataUtils {
             }
 
             if((!additionalBiller.isEmpty()) && Labels.COD_SENAE.equals(inquiryRq.getServicio().getCodigoEmpresa())){
+                String valor = buscarPorCodigo(inquiryRq.getServicio().getDatosAdicionales().getDatoAdicional(), "vp_s_referencia1")
+                        .map(DatoAdicional::getValor)
+                        .orElse("");
                 additionalData.add(new DatoAdicional(Labels.TOKEN1, buildTokenT1(paymentObligation)));
+                additionalData.add(new DatoAdicional(Labels.VP_REFERENCE_1, valor));
             }
         }
     }
@@ -826,6 +830,16 @@ public class AdditionalDataUtils {
 
         String header = String.format("! T1%05d", body.length());
         return header + " " + body;
+    }
+
+    private static Optional<DatoAdicional> buscarPorCodigo(List<DatoAdicional> lista, String codigo) {
+        if (lista == null || codigo == null) {
+            return Optional.empty();
+        }
+        return lista.stream()
+                .filter(Objects::nonNull)
+                .filter(dato -> codigo.equals(dato.getCodigo()))
+                .findFirst();
     }
 
 
